@@ -63,7 +63,10 @@ config2 = """
         "share"
       ],
       "globals": ["global0"],
-      "instance_name": "GANDOLPH"
+      "instance_name": "GANDOLPH",
+      "permissions": {
+          "method": "none"
+      }
     }
   },
   "shares": {
@@ -122,6 +125,9 @@ config3 = """
         "valid users": "sambauser",
         "guest ok": "no",
         "force user": "root"
+      },
+      "permissions": {
+          "method": "none"
       }
     }
   },
@@ -714,3 +720,39 @@ def test_instance_config_equality(json_a, json_b, iname, expect_equal):
         assert instance_a == instance_b
     else:
         assert instance_a != instance_b
+
+
+def test_permissions_config_default():
+    c1 = sambacc.config.GlobalConfig(io.StringIO(config1))
+    ic = c1.get("foobar")
+    for share in ic.shares():
+        assert share.permissions_config().method == "initialize-share-perms"
+
+
+def test_permissions_config_instance():
+    c2 = sambacc.config.GlobalConfig(io.StringIO(config2))
+    ic = c2.get("foobar")
+    for share in ic.shares():
+        assert share.permissions_config().method == "none"
+
+
+def test_permissions_config_share():
+    c3 = sambacc.config.GlobalConfig(io.StringIO(config3))
+    ic = c3.get("foobar")
+    for share in ic.shares():
+        assert share.permissions_config().method == "none"
+
+
+def test_permissions_config_options():
+    pc = sambacc.config.PermissionsConfig(
+        {
+            "method": "initialize-share-perms",
+            "status_xattr": "user.fake-stuff",
+            "mode": "0777",
+            "friendship": "always",
+        }
+    )
+    opts = pc.options
+    assert len(opts) == 2
+    assert "mode" in opts
+    assert "friendship" in opts
